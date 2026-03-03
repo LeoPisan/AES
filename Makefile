@@ -1,4 +1,4 @@
-CC ?= cc
+CC ?= gcc
 
 .PHONY: all
 all: main rijndael.so
