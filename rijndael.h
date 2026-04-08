@@ -1,8 +1,8 @@
 /*
  * Élia Gautier
  * A00051304
- * TODO: Add your name and student number here, along with
- *       a brief description of this code.
+ *
+ * This library is an implementation of AES made in the context of an assignment.
  */
 
 #ifndef RIJNDAEL_H
