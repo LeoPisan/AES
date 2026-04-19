@@ -10,3 +10,6 @@ jobs:
         run: |
           sudo apt install -y build-essential python-is-python3
           make
+      - name: Run the tests
+        run: |
+          python -m unittest discover -s test
