@@ -50,6 +50,20 @@ const uint8_t inv_s_box[256] = {
     0x17, 0x2B, 0x04, 0x7E, 0xBA, 0x77, 0xD6, 0x26, 0xE1, 0x69, 0x14, 0x63, 0x55, 0x21, 0x0C, 0x7D,
 };
 
+static const uint8_t r_con[11] = {
+    0x00,
+    0x01,
+    0x02,
+    0x04,
+    0x08,
+    0x10,
+    0x20,
+    0x40,
+    0x80,
+    0x1B,
+    0x36
+};
+
 // A few helper functions
 size_t block_size_to_bytes(aes_block_size_t block_size) {
     switch (block_size) {
@@ -263,8 +277,57 @@ void add_round_key(unsigned char *block,
  * vector, containing the 11 round keys one after the other
  */
 unsigned char *expand_key(unsigned char *cipher_key, aes_block_size_t block_size) {
-    // TODO: Implement me!
-    return 0;
+    if (block_size != AES_BLOCK_128) {
+        fprintf(stderr, "Key expansion currently implemented only for AES_BLOCK_128\n");
+        exit(1);
+    }
+
+    const size_t key_size = 16;
+    const size_t expanded_size = 176;   // 11 round keys * 16 bytes
+    const size_t words = 44;            // 176 / 4
+    unsigned char *expanded = malloc(expanded_size);
+    if (expanded == NULL) {
+        fprintf(stderr, "Failed to allocate expanded key\n");
+        exit(1);
+    }
+
+    // We copy the original 16-byte key
+    for (size_t i = 0; i < key_size; i++) {
+        expanded[i] = cipher_key[i];
+    }
+
+    size_t bytes_generated = key_size;
+    size_t rcon_index = 1;
+    unsigned char temp[4];
+
+    while (bytes_generated < expanded_size) {
+        // We copy the previous 4-byte word into temp
+        for (size_t i = 0; i < 4; i++) {
+            temp[i] = expanded[bytes_generated - 4 + i];
+        }
+
+        // We apply the key schedule core every 16 bytes
+        if (bytes_generated % key_size == 0) {
+            unsigned char first = temp[0];
+            temp[0] = temp[1];
+            temp[1] = temp[2];
+            temp[2] = temp[3];
+            temp[3] = first;
+
+            for (size_t i = 0; i < 4; i++) {
+                temp[i] = s_box[temp[i]];
+            }
+
+            temp[0] ^= r_con[rcon_index++];
+        }
+
+        for (size_t i = 0; i < 4; i++) {
+            expanded[bytes_generated] = expanded[bytes_generated - key_size] ^ temp[i];
+            bytes_generated++;
+        }
+    }
+
+    return expanded;
 }
 
 /*

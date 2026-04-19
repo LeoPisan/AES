@@ -18,8 +18,10 @@ def make_c_block(data):
     """Converts a Python block to a C block."""
     return (ctypes.c_ubyte * 16)(*data)
 
+
 def random_key(size=16):
     return os.urandom(size)
+
 
 class AesTestCase(unittest.TestCase):
     # Setup methods
@@ -27,10 +29,7 @@ class AesTestCase(unittest.TestCase):
     def setUpClass(cls):
         cls.rijndael = ctypes.CDLL("./rijndael.so")
         # These numerous lines define the signatures of functions from the C library
-        cls.rijndael.sub_bytes.argtypes = [
-            ctypes.POINTER(ctypes.c_ubyte),
-            ctypes.c_int
-        ]
+        cls.rijndael.sub_bytes.argtypes = [ctypes.POINTER(ctypes.c_ubyte), ctypes.c_int]
         cls.rijndael.sub_bytes.restype = None
         cls.rijndael.invert_sub_bytes.argtypes = [
             ctypes.POINTER(ctypes.c_ubyte),
@@ -42,7 +41,7 @@ class AesTestCase(unittest.TestCase):
             ctypes.c_int,
         ]
         cls.rijndael.shift_rows.restype = None
-        cls.rijndael.invert_shift_rows.argtypes= [
+        cls.rijndael.invert_shift_rows.argtypes = [
             ctypes.POINTER(ctypes.c_ubyte),
             ctypes.c_int,
         ]
@@ -63,6 +62,10 @@ class AesTestCase(unittest.TestCase):
             ctypes.c_int,
         ]
         cls.rijndael.add_round_key.restype = None
+        cls.rijndael.expand_key.argtypes = [
+            ctypes.POINTER(ctypes.c_ubyte),
+            ctypes.c_int,
+        ]
 
     def setUp(self):
         self.buffers_list = [random_block() for _ in range(MESSAGE_NUMBER)]
@@ -164,5 +167,20 @@ class AesTestCase(unittest.TestCase):
                     expected_result = aes.matrix2bytes(buffer_matrix)
                     actual_result = bytes(block)
                     self.assertEqual(actual_result, expected_result)
+
+    def test_expand_key_128(self):
+        for key in self.keys_list:
+            with self.subTest(key=key.hex()):
+                key_buf = (ctypes.c_ubyte * 16)(*key)
+                actual_pointer = self.rijndael.expand_key(key_buf, 0)
+                actual_result = ctypes.string_at(actual_pointer, 176)
+
+                aes_object = aes.AES(key)
+                expected_result = b"".join(
+                    aes.matrix2bytes(round_key) for round_key in aes_object._key_matrices
+                )
+                self.assertEqual(actual_result, expected_result)
+
+
 if __name__ == "__main__":
     unittest.main()
