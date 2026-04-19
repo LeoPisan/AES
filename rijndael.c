@@ -78,6 +78,10 @@ static size_t block_row_length(aes_block_size_t block_size) {
     }
 }
 
+static inline unsigned char xtime(unsigned char a) {
+    return (a & 0x80) ? ((a << 1) ^ 0x1B) : (a << 1);
+}
+
 unsigned char block_access(unsigned char *block, size_t row, size_t col, aes_block_size_t block_size) {
     int row_len;
     switch (block_size) {
@@ -145,8 +149,22 @@ void shift_rows(unsigned char *block, aes_block_size_t block_size) {
     }
 }
 
+static void mix_single_column(unsigned char *a) {
+    unsigned char t = a[0] ^ a[1] ^ a[2] ^ a[3];
+    unsigned char u = a[0];
+
+    a[0] ^= t ^ xtime(a[0] ^ a[1]);
+    a[1] ^= t ^ xtime(a[1] ^ a[2]);
+    a[2] ^= t ^ xtime(a[2] ^ a[3]);
+    a[3] ^= t ^ xtime(a[3] ^ u);
+}
+
 void mix_columns(unsigned char *block, aes_block_size_t block_size) {
-    // TODO: Implement me!
+    if (block_size == AES_BLOCK_128) {
+        for (size_t i = 0; i < 4; i++) {
+            mix_single_column(&block[i * 4]);
+        }
+    }
 }
 
 /*

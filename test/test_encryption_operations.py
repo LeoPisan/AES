@@ -101,6 +101,18 @@ class AesTestCase(unittest.TestCase):
                 actual_result = bytes(block)
                 self.assertEqual(actual_result, expected_result)
 
+    def test_mix_columns_128(self):
+        for buffer in self.buffers_list:
+            with self.subTest(buffer=buffer.hex()):
+                block = (ctypes.c_ubyte * 16)(*buffer)
+                buffer_matrix = aes.bytes2matrix(buffer)
+
+                self.rijndael.mix_columns(block, 0)
+                aes.mix_columns(buffer_matrix)
+
+                expected_result = aes.matrix2bytes(buffer_matrix)
+                actual_result = bytes(block)
+                self.assertEqual(actual_result, expected_result)
 
 
 if __name__ == "__main__":
