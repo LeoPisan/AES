@@ -97,12 +97,12 @@ char *message(char n) {
  */
 void sub_bytes(unsigned char *block, aes_block_size_t block_size) {
     if (block_size == AES_BLOCK_128) {
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < 4; i++) {
             for (int j = 0; j < 4; j++) {
+                block[i * 4 + j] = s_box[block[i * 4 + j]];
             }
         }
     }
-    // TODO: Implement me!
 }
 
 void shift_rows(unsigned char *block, aes_block_size_t block_size) {
