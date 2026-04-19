@@ -1,21 +1,47 @@
 import ctypes
+import os
 import unittest
 
 from aes import aes
 
+MESSAGE_NUMBER = 5
 
-class MyTestCase(unittest.TestCase):
+# A few helpers
+def random_block():
+    """Generates a random block."""
+    return os.urandom(16)
+
+
+def make_c_block(data):
+    """Converts a Python block to a C block."""
+    return (ctypes.c_ubyte * 16)(*data)
+
+
+class AesTestCase(unittest.TestCase):
+    # Setup methods
+    @classmethod
+    def setUpClass(cls):
+        cls.rijndael = ctypes.CDLL("./rijndael.so")
+        cls.rijndael.sub_bytes.argtypes = [ctypes.POINTER(ctypes.c_ubyte), ctypes.c_int]
+        cls.rijndael.sub_bytes.restype = None
+
     def setUp(self):
-        self.rijndael = ctypes.CDLL("./rijndael.so")
-        self.buffer = b"\x00\x01\x02\x03\x04\x05\x06\x07"
-        self.buffer += b"\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f"
-        self.buffer_matrix = aes.bytes2matrix(self.buffer)
-        self.block = ctypes.create_string_buffer(self.buffer)
+        self.buffers_list = [random_block() for _ in range(MESSAGE_NUMBER)]
 
+    # Actual tests
     def test_sub_bytes(self):
-        actual_result = self.rijndael.sub_bytes(self.block, 0)  # 0 = AES_BLOCK_128
-        expected_result = aes.sub_bytes(self.buffer_matrix)
-        self.assertEqual(actual_result, expected_result)
+        for buffer in self.buffers_list:
+            with self.subTest(buffer=buffer.hex()):
+                block = (ctypes.c_ubyte * 16)(*buffer)
+                buffer_matrix = aes.bytes2matrix(buffer)
+
+                self.rijndael.sub_bytes(block, 0)  # 0 = AES_BLOCK_128
+
+                aes.sub_bytes(buffer_matrix)
+                expected_result = aes.matrix2bytes(buffer_matrix)
+
+                actual_result = bytes(block)
+                self.assertEqual(actual_result, expected_result)
 
 
 if __name__ == "__main__":
