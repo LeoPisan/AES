@@ -50,6 +50,7 @@ const uint8_t inv_s_box[256] = {
     0x17, 0x2B, 0x04, 0x7E, 0xBA, 0x77, 0xD6, 0x26, 0xE1, 0x69, 0x14, 0x63, 0x55, 0x21, 0x0C, 0x7D,
 };
 
+// A few helper functions
 size_t block_size_to_bytes(aes_block_size_t block_size) {
     switch (block_size) {
         case AES_BLOCK_128:
@@ -64,21 +65,7 @@ size_t block_size_to_bytes(aes_block_size_t block_size) {
     }
 }
 
-static size_t block_row_length(aes_block_size_t block_size) {
-    switch (block_size) {
-        case AES_BLOCK_128:
-            return 4;
-        case AES_BLOCK_256:
-            return 8;
-        case AES_BLOCK_512:
-            return 16;
-        default:
-            fprintf(stderr, "Invalid block size %d\n", block_size);
-            exit(1);
-    }
-}
-
-static inline unsigned char xtime(unsigned char a) {
+static unsigned char xtime(unsigned char a) {
     return (a & 0x80) ? ((a << 1) ^ 0x1B) : (a << 1);
 }
 
@@ -130,6 +117,7 @@ unsigned char block_access(unsigned char *block, size_t row, size_t col, aes_blo
     return block[(row * row_len) + col];
 }
 
+// Actual implementation
 char *message(char n) {
     char *output = (char *) malloc(7);
     strcpy(output, "hello");
@@ -260,7 +248,13 @@ void invert_mix_columns(unsigned char *block, aes_block_size_t block_size) {
 void add_round_key(unsigned char *block,
                    unsigned char *round_key,
                    aes_block_size_t block_size) {
-    // TODO: Implement me!
+    if (block_size == AES_BLOCK_128) {
+        for (int i = 0; i < 4; i++) {
+            for (int j = 0; j < 4; j++) {
+                block[i * 4 + j] ^= round_key[i * 4 + j];
+            }
+        }
+    }
 }
 
 /*

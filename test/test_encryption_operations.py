@@ -5,6 +5,7 @@ import unittest
 from aes import aes
 
 MESSAGE_NUMBER = 5
+KEY_NUMBER = 5
 
 
 # A few helpers
@@ -17,12 +18,15 @@ def make_c_block(data):
     """Converts a Python block to a C block."""
     return (ctypes.c_ubyte * 16)(*data)
 
+def random_key(size=16):
+    return os.urandom(size)
 
 class AesTestCase(unittest.TestCase):
     # Setup methods
     @classmethod
     def setUpClass(cls):
         cls.rijndael = ctypes.CDLL("./rijndael.so")
+        # These numerous lines define the signatures of functions from the C library
         cls.rijndael.sub_bytes.argtypes = [
             ctypes.POINTER(ctypes.c_ubyte),
             ctypes.c_int
@@ -53,9 +57,16 @@ class AesTestCase(unittest.TestCase):
             ctypes.c_int,
         ]
         cls.rijndael.invert_mix_columns.restype = None
+        cls.rijndael.add_round_key.argtypes = [
+            ctypes.POINTER(ctypes.c_ubyte),
+            ctypes.POINTER(ctypes.c_ubyte),
+            ctypes.c_int,
+        ]
+        cls.rijndael.add_round_key.restype = None
 
     def setUp(self):
         self.buffers_list = [random_block() for _ in range(MESSAGE_NUMBER)]
+        self.keys_list = [random_key() for _ in range(KEY_NUMBER)]
 
     # Actual tests
     def test_sub_bytes_128(self):
@@ -137,6 +148,21 @@ class AesTestCase(unittest.TestCase):
                 actual_result = bytes(block)
                 self.assertEqual(actual_result, expected_result)
 
+    def test_add_round_key_128(self):
+        for buffer in self.buffers_list:
+            for key in self.keys_list:
+                with self.subTest(buffer=buffer.hex(), key=key.hex()):
+                    block = (ctypes.c_ubyte * 16)(*buffer)
+                    buffer_matrix = aes.bytes2matrix(buffer)
 
+                    round_key = (ctypes.c_ubyte * 16)(*key)
+                    round_key_matrix = aes.bytes2matrix(key)
+
+                    self.rijndael.add_round_key(block, round_key, 0)
+                    aes.add_round_key(buffer_matrix, round_key_matrix)
+
+                    expected_result = aes.matrix2bytes(buffer_matrix)
+                    actual_result = bytes(block)
+                    self.assertEqual(actual_result, expected_result)
 if __name__ == "__main__":
     unittest.main()
