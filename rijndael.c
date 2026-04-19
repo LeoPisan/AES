@@ -163,7 +163,29 @@ void invert_sub_bytes(unsigned char *block, aes_block_size_t block_size) {
 }
 
 void invert_shift_rows(unsigned char *block, aes_block_size_t block_size) {
-    // TODO: Implement me!
+    if (block_size == AES_BLOCK_128) {
+        unsigned char tmp;
+
+        tmp = block[13];
+        block[13] = block[9];
+        block[9] = block[5];
+        block[5] = block[1];
+        block[1] = tmp;
+
+        tmp = block[2];
+        block[2] = block[10];
+        block[10] = tmp;
+
+        tmp = block[6];
+        block[6] = block[14];
+        block[14] = tmp;
+
+        tmp = block[3];
+        block[3] = block[7];
+        block[7] = block[11];
+        block[11] = block[15];
+        block[15] = tmp;
+    }
 }
 
 void invert_mix_columns(unsigned char *block, aes_block_size_t block_size) {

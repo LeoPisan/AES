@@ -38,6 +38,11 @@ class AesTestCase(unittest.TestCase):
             ctypes.c_int,
         ]
         cls.rijndael.shift_rows.restype = None
+        cls.rijndael.invert_shift_rows.argtypes= [
+            ctypes.POINTER(ctypes.c_ubyte),
+            ctypes.c_int,
+        ]
+        cls.rijndael.invert_shift_rows.restype = None
 
     def setUp(self):
         self.buffers_list = [random_block() for _ in range(MESSAGE_NUMBER)]
@@ -70,7 +75,7 @@ class AesTestCase(unittest.TestCase):
                 actual_result = bytes(block)
                 self.assertEqual(actual_result, expected_result)
 
-    def test_shift_rows(self):
+    def test_shift_rows_128(self):
         for buffer in self.buffers_list:
             with self.subTest(buffer=buffer.hex()):
                 block = (ctypes.c_ubyte * 16)(*buffer)
@@ -78,6 +83,19 @@ class AesTestCase(unittest.TestCase):
 
                 self.rijndael.shift_rows(block, 0)
                 aes.shift_rows(buffer_matrix)
+                expected_result = aes.matrix2bytes(buffer_matrix)
+
+                actual_result = bytes(block)
+                self.assertEqual(actual_result, expected_result)
+
+    def test_invert_shift_rows_128(self):
+        for buffer in self.buffers_list:
+            with self.subTest(buffer=buffer.hex()):
+                block = (ctypes.c_ubyte * 16)(*buffer)
+                buffer_matrix = aes.bytes2matrix(buffer)
+
+                self.rijndael.invert_shift_rows(block, 0)
+                aes.inv_shift_rows(buffer_matrix)
                 expected_result = aes.matrix2bytes(buffer_matrix)
 
                 actual_result = bytes(block)
