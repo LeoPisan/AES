@@ -64,6 +64,20 @@ size_t block_size_to_bytes(aes_block_size_t block_size) {
     }
 }
 
+static size_t block_row_length(aes_block_size_t block_size) {
+    switch (block_size) {
+        case AES_BLOCK_128:
+            return 4;
+        case AES_BLOCK_256:
+            return 8;
+        case AES_BLOCK_512:
+            return 16;
+        default:
+            fprintf(stderr, "Invalid block size %d\n", block_size);
+            exit(1);
+    }
+}
+
 unsigned char block_access(unsigned char *block, size_t row, size_t col, aes_block_size_t block_size) {
     int row_len;
     switch (block_size) {
@@ -106,7 +120,29 @@ void sub_bytes(unsigned char *block, aes_block_size_t block_size) {
 }
 
 void shift_rows(unsigned char *block, aes_block_size_t block_size) {
-    // TODO: Implement me!
+    if (block_size == AES_BLOCK_128) {
+        unsigned char tmp;
+
+        tmp = block[1];
+        block[1] = block[5];
+        block[5] = block[9];
+        block[9] = block[13];
+        block[13] = tmp;
+
+        tmp = block[2];
+        block[2] = block[10];
+        block[10] = tmp;
+
+        tmp = block[6];
+        block[6] = block[14];
+        block[14] = tmp;
+
+        tmp = block[15];
+        block[15] = block[11];
+        block[11] = block[7];
+        block[7] = block[3];
+        block[3] = tmp;
+    }
 }
 
 void mix_columns(unsigned char *block, aes_block_size_t block_size) {
