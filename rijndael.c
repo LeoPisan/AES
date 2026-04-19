@@ -82,6 +82,34 @@ static inline unsigned char xtime(unsigned char a) {
     return (a & 0x80) ? ((a << 1) ^ 0x1B) : (a << 1);
 }
 
+static unsigned char mul_by_2(unsigned char a) {
+    return xtime(a);
+}
+
+static unsigned char mul_by_4(unsigned char a) {
+    return xtime(xtime(a));
+}
+
+static unsigned char mul_by_8(unsigned char a) {
+    return xtime(xtime(xtime(a)));
+}
+
+static unsigned char mul_by_9(unsigned char a) {
+    return mul_by_8(a) ^ a;
+}
+
+static unsigned char mul_by_11(unsigned char a) {
+    return mul_by_8(a) ^ mul_by_2(a) ^ a;
+}
+
+static unsigned char mul_by_13(unsigned char a) {
+    return mul_by_8(a) ^ mul_by_4(a) ^ a;
+}
+
+static unsigned char mul_by_14(unsigned char a) {
+    return mul_by_8(a) ^ mul_by_4(a) ^ mul_by_2(a);
+}
+
 unsigned char block_access(unsigned char *block, size_t row, size_t col, aes_block_size_t block_size) {
     int row_len;
     switch (block_size) {
@@ -206,8 +234,24 @@ void invert_shift_rows(unsigned char *block, aes_block_size_t block_size) {
     }
 }
 
+static void invert_mix_single_column(unsigned char *a) {
+    unsigned char c0 = a[0];
+    unsigned char c1 = a[1];
+    unsigned char c2 = a[2];
+    unsigned char c3 = a[3];
+
+    a[0] = mul_by_14(c0) ^ mul_by_11(c1) ^ mul_by_13(c2) ^ mul_by_9(c3);
+    a[1] = mul_by_9(c0) ^ mul_by_14(c1) ^ mul_by_11(c2) ^ mul_by_13(c3);
+    a[2] = mul_by_13(c0) ^ mul_by_9(c1) ^ mul_by_14(c2) ^ mul_by_11(c3);
+    a[3] = mul_by_11(c0) ^ mul_by_13(c1) ^ mul_by_9(c2) ^ mul_by_14(c3);
+}
+
 void invert_mix_columns(unsigned char *block, aes_block_size_t block_size) {
-    // TODO: Implement me!
+    if (block_size == AES_BLOCK_128) {
+        for (size_t i = 0; i < 4; i++) {
+            invert_mix_single_column(&block[i * 4]);
+        }
+    }
 }
 
 /*

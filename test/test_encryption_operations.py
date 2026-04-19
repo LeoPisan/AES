@@ -43,6 +43,16 @@ class AesTestCase(unittest.TestCase):
             ctypes.c_int,
         ]
         cls.rijndael.invert_shift_rows.restype = None
+        cls.rijndael.mix_columns.argtypes = [
+            ctypes.POINTER(ctypes.c_ubyte),
+            ctypes.c_int,
+        ]
+        cls.rijndael.mix_columns.restype = None
+        cls.rijndael.invert_mix_columns.argtypes = [
+            ctypes.POINTER(ctypes.c_ubyte),
+            ctypes.c_int,
+        ]
+        cls.rijndael.invert_mix_columns.restype = None
 
     def setUp(self):
         self.buffers_list = [random_block() for _ in range(MESSAGE_NUMBER)]
@@ -109,6 +119,19 @@ class AesTestCase(unittest.TestCase):
 
                 self.rijndael.mix_columns(block, 0)
                 aes.mix_columns(buffer_matrix)
+
+                expected_result = aes.matrix2bytes(buffer_matrix)
+                actual_result = bytes(block)
+                self.assertEqual(actual_result, expected_result)
+
+    def test_invert_mix_columns_128(self):
+        for buffer in self.buffers_list:
+            with self.subTest(buffer=buffer.hex()):
+                block = (ctypes.c_ubyte * 16)(*buffer)
+                buffer_matrix = aes.bytes2matrix(buffer)
+
+                self.rijndael.invert_mix_columns(block, 0)
+                aes.inv_mix_columns(buffer_matrix)
 
                 expected_result = aes.matrix2bytes(buffer_matrix)
                 actual_result = bytes(block)
