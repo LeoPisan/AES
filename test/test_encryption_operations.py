@@ -6,6 +6,7 @@ from aes import aes
 
 MESSAGE_NUMBER = 5
 
+
 # A few helpers
 def random_block():
     """Generates a random block."""
@@ -22,14 +23,22 @@ class AesTestCase(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.rijndael = ctypes.CDLL("./rijndael.so")
-        cls.rijndael.sub_bytes.argtypes = [ctypes.POINTER(ctypes.c_ubyte), ctypes.c_int]
+        cls.rijndael.sub_bytes.argtypes = [
+            ctypes.POINTER(ctypes.c_ubyte),
+            ctypes.c_int
+        ]
         cls.rijndael.sub_bytes.restype = None
+        cls.rijndael.invert_sub_bytes.argtypes = [
+            ctypes.POINTER(ctypes.c_ubyte),
+            ctypes.c_int,
+        ]
+        cls.rijndael.invert_sub_bytes.restype = None
 
     def setUp(self):
         self.buffers_list = [random_block() for _ in range(MESSAGE_NUMBER)]
 
     # Actual tests
-    def test_sub_bytes(self):
+    def test_sub_bytes_128(self):
         for buffer in self.buffers_list:
             with self.subTest(buffer=buffer.hex()):
                 block = (ctypes.c_ubyte * 16)(*buffer)
@@ -38,6 +47,19 @@ class AesTestCase(unittest.TestCase):
                 self.rijndael.sub_bytes(block, 0)  # 0 = AES_BLOCK_128
 
                 aes.sub_bytes(buffer_matrix)
+                expected_result = aes.matrix2bytes(buffer_matrix)
+
+                actual_result = bytes(block)
+                self.assertEqual(actual_result, expected_result)
+
+    def test_invert_sub_bytes_128(self):
+        for buffer in self.buffers_list:
+            with self.subTest(buffer=buffer.hex()):
+                block = (ctypes.c_ubyte * 16)(*buffer)
+                buffer_matrix = aes.bytes2matrix(buffer)
+
+                self.rijndael.invert_sub_bytes(block, 0)
+                aes.inv_sub_bytes(buffer_matrix)
                 expected_result = aes.matrix2bytes(buffer_matrix)
 
                 actual_result = bytes(block)
